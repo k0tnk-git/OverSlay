@@ -15,7 +15,6 @@ final class RadialPanel: NSPanel {
     init(
         frame: NSRect,
         opacity: Double = 0.72,
-        inputMode: RadialInputMode = .digital,
         onBegin: @escaping () -> Bool,
         onMove: @escaping (RadialVector) -> Void,
         onEnd: @escaping () -> Void,
@@ -23,7 +22,7 @@ final class RadialPanel: NSPanel {
         onGeometryCommitted: @escaping (NSRect, Bool, ResizeHandle?) -> Void = { _, _, _ in },
         onProperties: @escaping () -> Void = {}
     ) {
-        radialView = RadialView(opacity: opacity, inputMode: inputMode, onBegin: onBegin, onMove: onMove, onEnd: onEnd, onGeometryChanged: onGeometryChanged, onGeometryCommitted: onGeometryCommitted, onProperties: onProperties)
+        radialView = RadialView(opacity: opacity, onBegin: onBegin, onMove: onMove, onEnd: onEnd, onGeometryChanged: onGeometryChanged, onGeometryCommitted: onGeometryCommitted, onProperties: onProperties)
         super.init(contentRect: frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
         isOpaque = false
         backgroundColor = .clear
@@ -53,12 +52,10 @@ final class RadialPanel: NSPanel {
     func cancelTracking() { radialView.cancelTracking() }
     func finishMouseTracking() { radialView.finishMouseTracking() }
     var isTracking: Bool { radialView.isTracking }
-    func setAnalogAvailable(_ available: Bool) { radialView.analogAvailable = available; radialView.needsDisplay = true }
     func setEditing(_ editing: Bool) { radialView.setEditing(editing) }
     func applyEditorFrame(_ frame: NSRect) { setFrame(frame, display: true) }
     func update(config: RadialWidgetConfig) {
         radialView.opacity = CGFloat(config.opacity)
-        radialView.inputMode = config.inputMode
         setFrame(NSRect(x: config.geometry.x, y: config.geometry.y, width: config.geometry.width, height: config.geometry.height), display: true)
         radialView.needsDisplay = true
     }
@@ -87,13 +84,10 @@ private final class RadialView: NSView {
     var isEditing = false
     var opacity: CGFloat
     var direction: RadialDirection?
-    var inputMode: RadialInputMode
-    var analogAvailable = false
     var isTracking: Bool { tracking }
 
-    init(opacity: Double, inputMode: RadialInputMode, onBegin: @escaping () -> Bool, onMove: @escaping (RadialVector) -> Void, onEnd: @escaping () -> Void, onGeometryChanged: @escaping (NSRect, Bool, ResizeHandle?) -> Void, onGeometryCommitted: @escaping (NSRect, Bool, ResizeHandle?) -> Void, onProperties: @escaping () -> Void) {
+    init(opacity: Double, onBegin: @escaping () -> Bool, onMove: @escaping (RadialVector) -> Void, onEnd: @escaping () -> Void, onGeometryChanged: @escaping (NSRect, Bool, ResizeHandle?) -> Void, onGeometryCommitted: @escaping (NSRect, Bool, ResizeHandle?) -> Void, onProperties: @escaping () -> Void) {
         self.opacity = CGFloat(min(max(opacity, 0.1), 1))
-        self.inputMode = inputMode
         self.onBegin = onBegin
         self.onMove = onMove
         self.onEnd = onEnd
@@ -176,11 +170,6 @@ private final class RadialView: NSView {
         let knob = NSBezierPath(ovalIn: NSRect(x: knobCenter.x - knobRadius, y: knobCenter.y - knobRadius, width: knobRadius * 2, height: knobRadius * 2))
         (tracking ? NSColor.systemBlue : NSColor.white).withAlphaComponent(tracking ? 0.9 : 0.62).setFill()
         knob.fill()
-        let symbol = inputMode == .digital ? "keyboard" : "gamecontroller"
-        if let image = NSImage(systemSymbolName: symbol, accessibilityDescription: inputMode == .digital ? L10n.text("Клавиатурный режим") : L10n.text("Режим джойстика")) {
-            let side = min(14, max(9, bounds.width * 0.07))
-            image.draw(in: NSRect(x: center.x - side / 2, y: center.y - radius * 0.72 - side / 2, width: side, height: side), from: .zero, operation: .sourceOver, fraction: inputMode == .analog && !analogAvailable ? 0.16 : 0.3)
-        }
         if isEditing {
             EditorChrome.draw(in: bounds, selected: false, phase: dragStart == nil ? EditorPulseClock.phase : 0, hovered: hoveredHandle, snapped: snappedEdges)
         }

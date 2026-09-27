@@ -12,6 +12,7 @@ let package = Package(
     targets: [
         .target(name: "OverSlayCore", path: "Sources/OverSlayCore", resources: [.process("Resources")]),
         .executableTarget(name: "OverSlay", dependencies: ["OverSlayCore"], path: "Sources/OverSlay"),
-        .testTarget(name: "OverSlayCoreTests", dependencies: ["OverSlayCore"], path: "Tests/OverSlayCoreTests")
+        .testTarget(name: "OverSlayCoreTests", dependencies: ["OverSlayCore"], path: "Tests/OverSlayCoreTests"),
+        .testTarget(name: "OverSlayAppTests", dependencies: ["OverSlay", "OverSlayCore"], path: "Tests/OverSlayAppTests")
     ]
 )

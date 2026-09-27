@@ -10,31 +10,6 @@ public struct RadialVector: Equatable, Sendable {
     }
 }
 
-public struct AnalogStickValue: Equatable, Sendable {
-    public let x: Double
-    public let y: Double
-    public init(x: Double, y: Double) { self.x = x; self.y = y }
-}
-
-public enum AnalogStickMath {
-    /// Converts a normalized radial input to a circular stick output with a radial dead zone.
-    public static func applyDeadZone(_ vector: RadialVector, deadZone: Double = 0.2) -> AnalogStickValue {
-        guard vector.x.isFinite, vector.y.isFinite, deadZone.isFinite, (0..<1).contains(deadZone) else {
-            return AnalogStickValue(x: 0, y: 0)
-        }
-        let rawMagnitude = hypot(vector.x, vector.y)
-        guard rawMagnitude > deadZone else { return AnalogStickValue(x: 0, y: 0) }
-        let magnitude = min(rawMagnitude, 1)
-        let outputMagnitude = (magnitude - deadZone) / (1 - deadZone)
-        return AnalogStickValue(x: vector.x / rawMagnitude * outputMagnitude, y: vector.y / rawMagnitude * outputMagnitude)
-    }
-}
-
-public protocol AnalogInputSink: AnyObject {
-    func updateAxes(_ value: AnalogStickValue)
-    func releaseAxes()
-}
-
 public enum RadialDirection: String, Equatable, Sendable {
     case up
     case upRight

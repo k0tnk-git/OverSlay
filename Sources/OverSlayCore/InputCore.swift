@@ -166,17 +166,15 @@ public enum ButtonAppearanceError: Error { case invalidColor }
 public struct RadialWidgetConfig: Codable, Equatable, Sendable {
     public var geometry: WidgetGeometry
     public var opacity: Double
-    public var inputMode: RadialInputMode
     public var rightMouseAction: SideInputAction
     public var scrollUpAction: ScrollInputAction
     public var scrollDownAction: ScrollInputAction
 
-    private enum CodingKeys: String, CodingKey { case geometry, opacity, inputMode, rightMouseAction, scrollUpAction, scrollDownAction }
+    private enum CodingKeys: String, CodingKey { case geometry, opacity, rightMouseAction, scrollUpAction, scrollDownAction }
 
-    public init(geometry: WidgetGeometry = .init(x: 18, y: 22, width: 190, height: 190), opacity: Double = 0.72, inputMode: RadialInputMode = .digital, rightMouseAction: SideInputAction = .passthrough, scrollUpAction: ScrollInputAction = .passthrough, scrollDownAction: ScrollInputAction = .passthrough) {
+    public init(geometry: WidgetGeometry = .init(x: 18, y: 22, width: 190, height: 190), opacity: Double = 0.72, rightMouseAction: SideInputAction = .passthrough, scrollUpAction: ScrollInputAction = .passthrough, scrollDownAction: ScrollInputAction = .passthrough) {
         self.geometry = geometry
         self.opacity = min(max(opacity.isFinite ? opacity : 0.72, 0.1), 1)
-        self.inputMode = inputMode
         self.rightMouseAction = rightMouseAction
         self.scrollUpAction = scrollUpAction
         self.scrollDownAction = scrollDownAction
@@ -187,15 +185,12 @@ public struct RadialWidgetConfig: Codable, Equatable, Sendable {
         self.init(
             geometry: try container.decodeIfPresent(WidgetGeometry.self, forKey: .geometry) ?? .init(x: 18, y: 22, width: 190, height: 190),
             opacity: try container.decodeIfPresent(Double.self, forKey: .opacity) ?? 0.72,
-            inputMode: try container.decodeIfPresent(RadialInputMode.self, forKey: .inputMode) ?? .digital,
             rightMouseAction: try container.decodeIfPresent(SideInputAction.self, forKey: .rightMouseAction) ?? .sprint,
             scrollUpAction: try container.decodeIfPresent(ScrollInputAction.self, forKey: .scrollUpAction) ?? .passthrough,
             scrollDownAction: try container.decodeIfPresent(ScrollInputAction.self, forKey: .scrollDownAction) ?? .passthrough
         )
     }
 }
-
-public enum RadialInputMode: String, Codable, Sendable { case digital, analog }
 
 public enum SideInputAction: Codable, Equatable, Sendable {
     case passthrough, sprint, custom(KeyBinding), none

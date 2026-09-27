@@ -5,23 +5,20 @@ enum RadialSettingSlot: Equatable { case rightMouse, scrollUp, scrollDown }
 
 final class RadialPropertiesWindow: NSPanel, NSWindowDelegate {
     private var config: RadialWidgetConfig
-    private let analogAvailable: Bool
     private let sideInputAvailable: Bool
     private let onSave: (RadialWidgetConfig) -> Void
     private let onCancel: () -> Void
     private var language: KeyboardLanguage
     private var finished = false
     private var picker: MouseKeyPickerWindow?
-    private let mode = NSPopUpButton()
     private let right = NSPopUpButton()
     private let up = NSPopUpButton()
     private let down = NSPopUpButton()
     private let opacity = NSSlider(value: 0.72, minValue: 0.1, maxValue: 1, target: nil, action: nil)
     private let opacityLabel = NSTextField(labelWithString: "72%")
 
-    init(config: RadialWidgetConfig, analogAvailable: Bool, sideInputAvailable: Bool, language: KeyboardLanguage, onSave: @escaping (RadialWidgetConfig) -> Void, onCancel: @escaping () -> Void) {
+    init(config: RadialWidgetConfig, sideInputAvailable: Bool, language: KeyboardLanguage, onSave: @escaping (RadialWidgetConfig) -> Void, onCancel: @escaping () -> Void) {
         self.config = config
-        self.analogAvailable = analogAvailable
         self.sideInputAvailable = sideInputAvailable
         self.language = language
         self.onSave = onSave
@@ -49,11 +46,6 @@ final class RadialPropertiesWindow: NSPanel, NSWindowDelegate {
         let stack = NSStackView(); stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 10; stack.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(stack)
         NSLayoutConstraint.activate([stack.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 18), stack.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -18), stack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16), stack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -16)])
-
-        mode.addItems(withTitles: [L10n.text("Клавиатура (WASD)"), L10n.text("Джойстик (Analog)")]); mode.selectItem(at: config.inputMode == .digital ? 0 : 1)
-        mode.item(at: 1)?.isEnabled = analogAvailable || config.inputMode == .analog
-        if !analogAvailable { mode.toolTip = L10n.text("Виртуальный HID-контроллер недоступен в этой сборке или системе") }
-        stack.addArrangedSubview(row(L10n.text("Режим ввода"), mode))
 
         setup(right, action: config.rightMouseAction, allowsSprint: true, slot: .rightMouse)
         setup(up, action: config.scrollUpAction, allowsSprint: false, slot: .scrollUp)
@@ -122,7 +114,6 @@ final class RadialPropertiesWindow: NSPanel, NSWindowDelegate {
     private func updateOpacityLabel() { opacityLabel.stringValue = "\(Int((opacity.doubleValue * 100).rounded()))%" }
     @objc private func cancelClicked() { close() }
     @objc private func saveClicked() {
-        config.inputMode = mode.indexOfSelectedItem == 1 ? .analog : .digital
         config.opacity = opacity.doubleValue
         if right.indexOfSelectedItem != 2 { config.rightMouseAction = right.indexOfSelectedItem == 1 ? .sprint : (right.indexOfSelectedItem == 3 ? .none : .passthrough) }
         if up.indexOfSelectedItem != 1 { config.scrollUpAction = up.indexOfSelectedItem == 2 ? .none : .passthrough }

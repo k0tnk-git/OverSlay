@@ -6,12 +6,14 @@ import OverSlayCore
 struct KeyboardLanguage: Equatable {
     let inputSourceID: String?
     let sourceName: String
+    let languageCode: String?
     let canTranslate: Bool
     private let translatedLabels: [UInt16: String]
 
-    init(inputSourceID: String?, sourceName: String, canTranslate: Bool, translatedLabels: [UInt16: String]) {
+    init(inputSourceID: String?, sourceName: String, languageCode: String? = nil, canTranslate: Bool, translatedLabels: [UInt16: String]) {
         self.inputSourceID = inputSourceID
         self.sourceName = sourceName
+        self.languageCode = languageCode
         self.canTranslate = canTranslate
         self.translatedLabels = translatedLabels
     }
@@ -20,11 +22,19 @@ struct KeyboardLanguage: Equatable {
         switch inputSourceID {
         case "com.apple.keylayout.US", "com.apple.keylayout.ABC": return "EN"
         case "com.apple.keylayout.Russian": return "RU"
-        default:
-            let compact = sourceName.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !compact.isEmpty else { return L10n.text("КЛ") }
-            return String(compact.prefix(5))
+        default: break
         }
+        if let languageCode,
+           let code = languageCode.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(whereSeparator: { $0 == "-" || $0 == "_" }).first?.lowercased(),
+           (2...3).contains(code.count),
+           code.utf8.allSatisfy({ (97...122).contains($0) }),
+           !["und", "mul", "zxx"].contains(code) {
+            return code.uppercased()
+        }
+        let words = sourceName.split(whereSeparator: { !$0.isLetter })
+        let initials = words.count == 1 ? String(words[0].prefix(2)) : String(words.prefix(2).compactMap(\.first))
+        return initials.isEmpty ? L10n.text("КЛ") : initials.uppercased()
     }
 
     var tooltip: String {

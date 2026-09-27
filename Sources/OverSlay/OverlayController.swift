@@ -19,7 +19,6 @@ final class OverlayController: NSObject {
     private var languageTogglePanel: WidgetPanel?
     private var radialPanel: RadialPanel?
     private var radialEngine: RadialControlEngine?
-    private let analogSink = VirtualJoystickSink()
     private var configs: [UUID: WidgetConfig] = [:]
     private var keyboardConfigs: [UUID: WidgetConfig] = [:]
     private var selectedIDs: Set<UUID> = []
@@ -139,13 +138,12 @@ final class OverlayController: NSObject {
         radialPanel?.orderOut(nil)
         radialPanel = nil
         radialEngine?.releaseAll()
-        analogSink.releaseAxes()
         radialEngine = nil
-        analogSink.stop()
         panels.removeAll()
     }
 
     func clearInput() {
+        recorder?.cancelPlacement()
         macroRunner.cancel()
         runningMacroID = nil
         macroProgressTimer?.invalidate()
@@ -155,7 +153,6 @@ final class OverlayController: NSObject {
         radialPanel?.cancelTracking()
         panels.values.forEach { $0.cancelTracking() }
         keyboardPanels.values.forEach { $0.cancelTracking() }
-        analogSink.releaseAxes()
         radialEngine?.releaseAll()
         manager?.reset()
         radialPanel?.setDirection(nil)
@@ -186,7 +183,6 @@ final class OverlayController: NSObject {
         Profile widgets: \(configs.count)
         Active inputs: \(manager?.activeOwnerCount ?? 0)
         Side input event tap: \(sideInputTap.isRunning ? "running" : "unavailable")
-        Analog HID: \(analogSink.isAvailable ? "available" : "unavailable")
 
         Supports Hold, Toggle, Timed Toggle, Compatibility Mode and emergency reset.
         Fullscreen, game compatibility and cursor capture: NOT RUN on the target Mac.
@@ -743,39 +739,29 @@ final class OverlayController: NSObject {
         )
         radialEngine = RadialControlEngine(config: config, sink: injector, scheduler: scheduler)
         let radial = profile?.radial ?? .init()
-        let analogReady = analogSink.start()
         let panel = RadialPanel(
             frame: NSRect(x: radial.geometry.x, y: radial.geometry.y, width: radial.geometry.width, height: radial.geometry.height),
             opacity: radial.opacity,
-            inputMode: radial.inputMode,
             onBegin: { [weak self] in
                 guard let self, !self.overlayHidden, !self.editMode, self.recorder == nil, self.permissions.isTrusted || self.permissions.requestIfNeeded() else { return false }
-                guard self.profile?.radial.inputMode != .analog || analogReady else { return false }
                 self.sideInputTap.setTracking(true)
                 self.radialEngine?.update(offset: .init(x: 0, y: 0))
                 return true
             },
             onMove: { [weak self] offset in
                 guard let self, !self.overlayHidden, !self.editMode, self.recorder == nil, self.permissions.isTrusted else { return }
-                if self.profile?.radial.inputMode == .analog {
-                    let value = AnalogStickMath.applyDeadZone(offset)
-                    self.analogSink.updateAxes(value)
-                } else {
-                    self.radialEngine?.update(offset: offset)
-                }
+                self.radialEngine?.update(offset: offset)
                 self.radialPanel?.setDirection(self.radialEngine?.direction)
             },
             onEnd: { [weak self] in
                 self?.sideInputTap.setTracking(false)
                 self?.radialEngine?.releaseAll()
-                self?.analogSink.releaseAxes()
                 self?.radialPanel?.setDirection(nil)
             },
             onGeometryChanged: { [weak self] frame, isResizing, handle in self?.radialGeometryChanged(frame, isResizing: isResizing, handle: handle) },
             onGeometryCommitted: { [weak self] frame, isResizing, handle in self?.radialGeometryCommitted(frame, isResizing: isResizing, handle: handle) },
             onProperties: { [weak self] in self?.showRadialProperties() }
         )
-        panel.setAnalogAvailable(analogReady)
         panel.onEditBegan = { [weak self] frame, handle in self?.beginEditGesture(id: "radial", frame: frame, handle: handle) }
         panel.onEditCancelled = { [weak self] in self?.cancelEditGesture() }
         radialPanel = panel
@@ -1402,7 +1388,7 @@ final class OverlayController: NSObject {
         guard editMode, let current = profile?.radial else { return }
         propertiesWindow?.close()
         let generation = profileGeneration
-        let window = RadialPropertiesWindow(config: current, analogAvailable: analogSink.isAvailable, sideInputAvailable: sideInputTap.isRunning, language: buttonLanguage, onSave: { [weak self] radial in
+        let window = RadialPropertiesWindow(config: current, sideInputAvailable: sideInputTap.isRunning, language: buttonLanguage, onSave: { [weak self] radial in
             guard let self, self.profileGeneration == generation, var profile = self.profile else { return }
             self.clearInput()
             profile.radial = radial

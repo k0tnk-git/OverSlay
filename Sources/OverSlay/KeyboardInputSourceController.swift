@@ -102,8 +102,9 @@ final class KeyboardInputSourceController {
 
         let identifier = property(kTISPropertyInputSourceID, from: source) as? String
         let name = property(kTISPropertyLocalizedName, from: source) as? String ?? identifier ?? L10n.text("Раскладка клавиатуры")
+        let languages = property(kTISPropertyInputSourceLanguages, from: source) as? [String]
         let labels = translatedLabels(for: source)
-        return KeyboardLanguage(inputSourceID: identifier, sourceName: name, canTranslate: labels != nil, translatedLabels: labels ?? [:])
+        return KeyboardLanguage(inputSourceID: identifier, sourceName: name, languageCode: languages?.first, canTranslate: labels != nil, translatedLabels: labels ?? [:])
     }
 
     private func translatedLabels(for source: TISInputSource) -> [UInt16: String]? {

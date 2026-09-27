@@ -258,15 +258,19 @@ private final class WidgetView: NSView {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
         paragraph.lineBreakMode = .byTruncatingTail
+        let baseFontSize = min(22, max(13, bounds.height * 0.28))
+        let availableWidth = max(0, bounds.width - 16)
+        let measuredWidth = max(label.size(withAttributes: [.font: NSFont.systemFont(ofSize: baseFontSize, weight: .semibold)]).width, 1)
+        let fontSize = min(baseFontSize, max(8, baseFontSize * availableWidth / measuredWidth))
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: min(22, max(13, bounds.height * 0.28)), weight: .semibold),
+            .font: NSFont.systemFont(ofSize: fontSize, weight: .semibold),
             .foregroundColor: NSColor.white,
             .shadow: { let shadow = NSShadow(); shadow.shadowColor = NSColor.black.withAlphaComponent(0.9); shadow.shadowBlurRadius = 3; shadow.shadowOffset = NSSize(width: 0, height: -1); return shadow }(),
             .paragraphStyle: paragraph
         ]
         let size = label.size(withAttributes: attributes)
         label.draw(in: NSRect(x: 8, y: bounds.midY - size.height / 2,
-                              width: max(0, bounds.width - 16), height: size.height), withAttributes: attributes)
+                              width: availableWidth, height: size.height), withAttributes: attributes)
         if !isEditing, let modeLabel = modeHint {
             if bounds.height >= 48 {
                 let font = NSFont.systemFont(ofSize: 9, weight: .regular)

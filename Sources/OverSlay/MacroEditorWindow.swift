@@ -133,12 +133,12 @@ final class MacroEditorWindow: NSPanel, NSWindowDelegate {
         scroll.hasVerticalScroller = true; scroll.documentView = rows
         scroll.translatesAutoresizingMaskIntoConstraints = false
         scroll.heightAnchor.constraint(equalToConstant: 180).isActive = true
-        scroll.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         rows.translatesAutoresizingMaskIntoConstraints = false
         rows.widthAnchor.constraint(equalTo: scroll.contentView.widthAnchor).isActive = true
         rows.leadingAnchor.constraint(equalTo: scroll.contentView.leadingAnchor).isActive = true
         rows.topAnchor.constraint(equalTo: scroll.contentView.topAnchor).isActive = true
         stack.addArrangedSubview(scroll)
+        scroll.widthAnchor.constraint(equalTo: stack.widthAnchor).isActive = true
         status.textColor = .secondaryLabelColor; stack.addArrangedSubview(status)
         let remove = NSButton(title: L10n.text("Удалить выбранный"), target: self, action: #selector(removeLast))
         let cancel = NSButton(title: L10n.text("Отмена"), target: self, action: #selector(cancel))

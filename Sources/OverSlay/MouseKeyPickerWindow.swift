@@ -3,7 +3,7 @@ import OverSlayCore
 
 final class MouseKeyPickerWindow: NSWindow, NSWindowDelegate {
     private let onPick: (KeyAction, String) -> Void
-    private let onDrag: (KeyAction, String, NSPoint) -> Void
+    private let onDrag: ((KeyAction, String, NSPoint) -> Void)?
     private let maximumBindings: Int
     private var bindings: [(binding: KeyBinding, label: String)] = []
     private var modifiers: NSEvent.ModifierFlags = []
@@ -15,7 +15,7 @@ final class MouseKeyPickerWindow: NSWindow, NSWindowDelegate {
     private var language: KeyboardLanguage
     private var keyButtons: [UInt16: [NSButton]] = [:]
 
-    init(title: String = L10n.text("Добавить кнопку"), language: KeyboardLanguage, maximumBindings: Int = 16, onPick: @escaping (KeyAction, String) -> Void, onDrag: @escaping (KeyAction, String, NSPoint) -> Void = { _, _, _ in }, onCancel: @escaping () -> Void) {
+    init(title: String = L10n.text("Добавить кнопку"), language: KeyboardLanguage, maximumBindings: Int = 16, onPick: @escaping (KeyAction, String) -> Void, onDrag: ((KeyAction, String, NSPoint) -> Void)? = nil, onCancel: @escaping () -> Void) {
         self.language = language
         self.maximumBindings = min(max(maximumBindings, 1), 16)
         self.onPick = onPick
@@ -41,7 +41,14 @@ final class MouseKeyPickerWindow: NSWindow, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    func windowWillClose(_ notification: Notification) { onCancel() }
+    func windowWillClose(_ notification: Notification) {
+        cancelPlacement()
+        onCancel()
+    }
+
+    func cancelPlacement() {
+        keyButtons.values.flatMap { $0 }.forEach { ($0 as? PickerKeyButton)?.cancelPointerInteraction() }
+    }
 
     func updateLanguage(_ language: KeyboardLanguage) {
         self.language = language
@@ -100,9 +107,10 @@ final class MouseKeyPickerWindow: NSWindow, NSWindowDelegate {
                 button.toolTip = language.tooltip
                 button.onTap = { [weak self, weak button] in if let button { self?.keyClicked(button) } }
                 button.onDrag = { [weak self, weak button] point in
-                    guard let self, let button else { return }
+                    guard let self, self.isVisible, let button else { return }
                     self.dragKey(button, at: point)
                 }
+                button.dragEnabled = supportsDrag
                 button.setContentHuggingPriority(.required, for: .horizontal)
                 button.widthAnchor.constraint(greaterThanOrEqualToConstant: label.count > 3 ? 58 : 38).isActive = true
                 button.heightAnchor.constraint(equalToConstant: 30).isActive = true
@@ -165,9 +173,11 @@ final class MouseKeyPickerWindow: NSWindow, NSWindowDelegate {
     private func dragKey(_ sender: NSButton, at point: NSPoint) {
         let binding = KeyBinding(keyCode: UInt16(sender.tag), modifiers: UInt64(modifiers.rawValue))
         let label = displayName(for: binding)
-        onDrag(KeyAction(binding), label, point)
+        onDrag?(KeyAction(binding), label, point)
         close()
     }
+
+    fileprivate var supportsDrag: Bool { onDrag != nil }
 
     @objc private func modeChanged(_ sender: NSPopUpButton) {
         mode = sender.indexOfSelectedItem == 1 ? .sequential : .simultaneous
@@ -210,11 +220,15 @@ final class MouseKeyPickerWindow: NSWindow, NSWindowDelegate {
     }
 }
 
-private final class PickerKeyButton: NSButton, NSDraggingSource {
+private final class PickerKeyButton: NSButton {
     var onTap: (() -> Void)?
     var onDrag: ((NSPoint) -> Void)?
+    var dragEnabled = false
     private var downPoint: NSPoint?
     private var didDrag = false
+    private var cancelledGesture = false
+    private var preview: NSPanel?
+    private var escapeMonitor: Any?
 
     init(title: String) {
         super.init(frame: .zero)
@@ -225,28 +239,112 @@ private final class PickerKeyButton: NSButton, NSDraggingSource {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func mouseDown(with event: NSEvent) {
-        downPoint = event.locationInWindow; didDrag = false
+        cleanupPointerInteraction()
+        downPoint = event.locationInWindow
+        didDrag = false
+        cancelledGesture = false
+        guard dragEnabled else { return }
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard event.keyCode == 53, let self else { return event }
+            self.cancelPointerInteraction()
+            return nil
+        }
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let downPoint, !didDrag else { return }
+        guard dragEnabled, let downPoint else { return }
         let current = event.locationInWindow
         let distance = hypot(current.x - downPoint.x, current.y - downPoint.y)
-        guard distance >= 5 else { return }
-        didDrag = true
-        let item = NSPasteboardItem()
-        item.setString(title, forType: .string)
-        let draggingItem = NSDraggingItem(pasteboardWriter: item)
-        draggingItem.setDraggingFrame(bounds, contents: NSImage(size: NSSize(width: 70, height: 30)))
-        let session = beginDraggingSession(with: [draggingItem], event: event, source: self)
-        session.animatesToStartingPositionsOnCancelOrFail = true
+        if !didDrag {
+            guard distance >= 5 else { return }
+            didDrag = true
+            showPreview(at: event.locationInWindow)
+        }
+        movePreview(to: event.locationInWindow)
     }
 
     override func mouseUp(with event: NSEvent) {
-        if !didDrag { onTap?() }
-        downPoint = nil; didDrag = false
+        guard downPoint != nil, !cancelledGesture else {
+            cleanupPointerInteraction()
+            return
+        }
+        var placement: NSPoint?
+        if didDrag {
+            let screenPoint = window?.convertPoint(toScreen: event.locationInWindow) ?? .zero
+            if let window, window.isVisible, !window.frame.contains(screenPoint),
+               NSScreen.screens.contains(where: { $0.frame.contains(screenPoint) }) {
+                placement = screenPoint
+            }
+        } else {
+            onTap?()
+        }
+        cleanupPointerInteraction()
+        if let placement { onDrag?(placement) }
     }
 
-    func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor draggingContext: NSDraggingContext) -> NSDragOperation { .copy }
-    func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) { onDrag?(screenPoint) }
+    fileprivate func cancelPointerInteraction() {
+        cancelledGesture = true
+        cleanupPointerInteraction()
+    }
+
+    deinit {
+        removeEscapeMonitor()
+        preview?.orderOut(nil)
+    }
+
+    private func cleanupPointerInteraction() {
+        hidePreview()
+        removeEscapeMonitor()
+        downPoint = nil
+        didDrag = false
+    }
+
+    private func removeEscapeMonitor() {
+        if let escapeMonitor {
+            NSEvent.removeMonitor(escapeMonitor)
+            self.escapeMonitor = nil
+        }
+    }
+
+    private func showPreview(at point: NSPoint) {
+        guard let window else { return }
+        let panel = preview ?? makePreviewPanel()
+        preview = panel
+        let screenPoint = window.convertPoint(toScreen: point)
+        panel.setFrameOrigin(NSPoint(x: screenPoint.x + 12, y: screenPoint.y - 18))
+        panel.orderFrontRegardless()
+    }
+
+    private func movePreview(to point: NSPoint) {
+        guard let window, let preview else { return }
+        let screenPoint = window.convertPoint(toScreen: point)
+        preview.setFrameOrigin(NSPoint(x: screenPoint.x + 12, y: screenPoint.y - 18))
+    }
+
+    private func hidePreview() {
+        preview?.orderOut(nil)
+        preview = nil
+    }
+
+    private func makePreviewPanel() -> NSPanel {
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 104, height: 34),
+                            styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.level = OverlayWindowLevel.service
+        panel.ignoresMouseEvents = true
+        panel.hidesOnDeactivate = false
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        panel.contentView?.wantsLayer = true
+        panel.contentView?.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        panel.contentView?.layer?.cornerRadius = 7
+        let label = NSTextField(labelWithString: title)
+        label.alignment = .center
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.frame = panel.contentView?.bounds ?? .zero
+        label.autoresizingMask = [.width, .height]
+        panel.contentView?.addSubview(label)
+        return panel
+    }
 }
