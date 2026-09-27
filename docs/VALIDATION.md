@@ -2,7 +2,13 @@
 
 ## Latest automated result
 
-CI [36309211349](https://github.com/k0tnk-git/OverSlay/actions/runs/36309211349) passed for commit `f083329766689f62b33d34df1c390064e20f3909`. The run executed 77 deterministic tests, built the universal arm64/x86_64 app, and passed ZIP and DMG launch, signature, and English/Russian catalog checks on macOS 15 and 26. The package is ad-hoc signed and not notarized.
+CI [36314948335](https://github.com/k0tnk-git/OverSlay/actions/runs/36314948335) passed for commit `0006a4be6eafb37ee822a09aed66fb879b9dc5dc`. The run executed the 89-test XCTest suite, built the universal arm64/x86_64 app, and passed ZIP and DMG launch, signature, and English/Russian catalog checks on macOS 15 and 26. The package is ad-hoc signed and not notarized.
+
+New regression coverage includes constructing and resizing the macro editor, compact keyboard-layout titles, decoding older radial settings with `inputMode: "analog"`, and picker placement/cancellation through directly dispatched AppKit mouse events. These checks do not establish physical mouse capture across apps, Finder behavior, multiple-display interaction, or game compatibility; use the updated [manual checklist](TESTER.md).
+
+## Published release evidence
+
+Release 0.1.0 remains associated with commit `f083329766689f62b33d34df1c390064e20f3909` and CI [36309211349](https://github.com/k0tnk-git/OverSlay/actions/runs/36309211349). That run executed 77 deterministic tests and passed packaging and launch checks. The fixes validated above are newer than that release.
 
 Read-only verification of the published assets passed: both downloaded files match `SHA256SUMS.txt`; the ZIP contains version 0.1.0, the expected build commit, license notices, and both localization catalogs.
 
