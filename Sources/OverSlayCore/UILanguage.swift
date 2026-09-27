@@ -26,20 +26,29 @@ public enum OverSlayLanguage: String, CaseIterable, Equatable {
 }
 
 public enum L10n {
+    private static let resourceBundle: Bundle = {
+        if let url = Bundle.main.url(forResource: "OverSlay_OverSlayCore", withExtension: "bundle"),
+           let bundle = Bundle(url: url) {
+            return bundle
+        }
+        // SwiftPM tests use their generated bundle; packaged apps resolve from Contents/Resources.
+        return Bundle.module
+    }()
+
     public static func text(_ key: String) -> String {
         text(key, language: OverSlayLanguage.active)
     }
 
     public static func text(_ key: String, language: OverSlayLanguage) -> String {
         let bundle: Bundle
-        if let path = Bundle.module.path(forResource: language.rawValue, ofType: "lproj"),
+        if let path = resourceBundle.path(forResource: language.rawValue, ofType: "lproj"),
            let localizedBundle = Bundle(path: path) {
             bundle = localizedBundle
-        } else if let englishPath = Bundle.module.path(forResource: OverSlayLanguage.english.rawValue, ofType: "lproj"),
+        } else if let englishPath = resourceBundle.path(forResource: OverSlayLanguage.english.rawValue, ofType: "lproj"),
                   let englishBundle = Bundle(path: englishPath) {
             bundle = englishBundle
         } else {
-            bundle = Bundle.module
+            bundle = resourceBundle
         }
         return NSLocalizedString(key, tableName: "Localizable", bundle: bundle, comment: "")
     }
@@ -57,7 +66,7 @@ public enum L10n {
     }
 
     static func catalogKeys(for language: OverSlayLanguage) throws -> Set<String> {
-        guard let path = Bundle.module.path(forResource: language.rawValue, ofType: "lproj"),
+        guard let path = resourceBundle.path(forResource: language.rawValue, ofType: "lproj"),
               let url = Bundle(path: path)?.url(forResource: "Localizable", withExtension: "strings") else { return [] }
         let data = try Data(contentsOf: url)
         let object = try PropertyListSerialization.propertyList(from: data, format: nil)

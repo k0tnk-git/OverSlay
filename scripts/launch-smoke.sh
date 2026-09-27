@@ -32,6 +32,20 @@ sleep 5
 if ! pgrep -x OverSlay; then
   echo 'FAIL: app did not stay alive after LaunchServices launch'
   find "$HOME/Library/Logs/DiagnosticReports" -maxdepth 1 -name 'OverSlay*' -type f -exec cat {} \; 2>/dev/null || true
+  direct_log="$report.direct-launch.log"
+  direct_status=0
+  "$app/Contents/MacOS/OverSlay" >"$direct_log" 2>&1 &
+  direct_pid=$!
+  sleep 5
+  if ps -p "$direct_pid" -o stat= | grep -qv '^[[:space:]]*Z'; then
+    echo 'Direct executable launch stayed alive for 5 seconds; terminating diagnostic process.'
+    kill -TERM "$direct_pid" 2>/dev/null || true
+    wait "$direct_pid" || true
+  else
+    wait "$direct_pid" || direct_status=$?
+    echo "Direct executable launch exited with status $direct_status. Captured output follows:"
+    cat "$direct_log"
+  fi
   exit 1
 fi
 echo 'PASS: LaunchServices accepted the app and its process stayed alive for 5 seconds'

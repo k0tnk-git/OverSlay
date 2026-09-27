@@ -8,9 +8,9 @@ for arch in arm64 x86_64; do
   swift build --configuration release --arch "$arch" --scratch-path ".build/$arch"
   bin_path=$(swift build --configuration release --arch "$arch" --scratch-path ".build/$arch" --show-bin-path)
   cp "$bin_path/OverSlay" "build/OverSlay-$arch"
-  # SwiftPM resource bundles are siblings of the executable on macOS.
+  # Place the core localization bundle in the standard app resources directory.
   while IFS= read -r -d '' resource; do
-    ditto "$resource" "$app/Contents/MacOS/$(basename "$resource")"
+    ditto "$resource" "$app/Contents/Resources/$(basename "$resource")"
   done < <(find "$bin_path" -maxdepth 1 -name '*.bundle' -type d -print0)
 done
 lipo -create build/OverSlay-arm64 build/OverSlay-x86_64 -output "$app/Contents/MacOS/OverSlay"
@@ -31,10 +31,10 @@ cp docs/reference/clickplay/LICENSE "$app/Contents/Resources/ClickPlay-LICENSE.t
 git rev-parse HEAD > "$app/Contents/Resources/build-commit.txt"
 plutil -lint "$app/Contents/Info.plist"
 lipo "$app/Contents/MacOS/OverSlay" -verify_arch arm64 x86_64
-# SwiftPM resource bundles live beside the executable and must be signed before the app.
+# Sign the nested SwiftPM resource bundle before signing the outer app.
 while IFS= read -r -d '' resource_bundle; do
   codesign --force --sign - "$resource_bundle"
-done < <(find "$app/Contents/MacOS" -maxdepth 1 -name '*.bundle' -type d -print0)
+done < <(find "$app/Contents/Resources" -maxdepth 1 -name '*.bundle' -type d -print0)
 codesign --force --sign - "$app"
 codesign --verify --deep --strict --verbose=2 "$app"
 cp docs/INSTALL.md dist/READ-ME-FIRST.md
