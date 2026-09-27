@@ -1,0 +1,17 @@
+# Manual test checklist
+
+Use a Mac running macOS 13 or later. Record macOS version, Intel or Apple silicon, release version, and each result as PASS, FAIL, or NOT RUN.
+
+- [ ] Install from the release DMG; approve opening and grant Accessibility permission.
+- [ ] Confirm the app launches and diagnostics show Accessibility access.
+- [ ] With mouse only, edit, add, assign, move, resize, and save a button; restart and confirm persistence.
+- [ ] Check Hold, Toggle, timed input, combinations, and a macro in TextEdit.
+- [ ] Use both emergency exits: five editor-button clicks and five distinct Escape presses, with no more than two seconds between activations. Confirm autorepeat does not count.
+- [ ] While input is active, open the editor, switch focus, hide controls, cancel a drag, and revoke permission where practical. Confirm input releases and old actions do not resume.
+- [ ] Drag the digital joystick in cardinal and diagonal directions, release inside and outside its panel, and reset during a drag.
+- [ ] Check mouse clicks outside overlay controls, windowed mode, fullscreen/Spaces, and focus behavior in the intended game.
+- [ ] Check profile switching and import/export without losing existing profile data.
+
+A successful launch is not evidence of game compatibility. Do not include private chat contents, account data, or full key logs in a report.
+
+- [ ] On a fresh install, confirm English UI. Select Russian under Settings, restart, and verify menus, editors, and errors. Switch back; confirm profile names and keyboard layouts are unchanged.
