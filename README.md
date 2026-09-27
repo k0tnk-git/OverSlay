@@ -4,10 +4,18 @@ OverSlay is a free, mouse-controlled macOS overlay built for accessibility and c
 
 **[Download the latest release](https://github.com/k0tnk-git/OverSlay/releases/latest)** · **[Installation guide](docs/INSTALL.md)**
 
+<img width="698" height="388" alt="SlayInGame" src="https://github.com/user-attachments/assets/84e7e8b3-f539-4eb7-ab95-b9824715d72d" />
+
 ## Features
 
 - Independent buttons with Hold, Toggle, timed Toggle, and multi-step Tap/Hold/Wait/Text macros.
+
+<img width="584" height="332" alt="SlayKeyResize" src="https://github.com/user-attachments/assets/5190d33d-e4d4-48f0-8ed4-cb3435ab9980" />
+
 - Mouse-based editing, grouping, resizing, and on-screen assignment of keys and combinations.
+
+<img width="584" height="332" alt="SlayKeyReposition" src="https://github.com/user-attachments/assets/ec0129f4-9ac3-4ce3-8c4d-ea4795388ffe" />
+
 - Per-button colors, fill patterns, and opacity.
 - App-linked profiles with JSON import and export.
 - Digital radial joystick and on-screen keyboard.
