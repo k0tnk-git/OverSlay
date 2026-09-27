@@ -216,7 +216,7 @@
 "ID профиля не совпадает с именем файла." = "The profile ID does not match its filename.";
 "OverSlay — диагностика" = "OverSlay — Diagnostics";
 "%@ — copy" = "%@ — copy";
-"По умолчанию" = "По умолчанию";
+"По умолчанию" = "Default";
 "Не удалось загрузить профили: %@" = "Could not load profiles: %@";
 "Tap %@ · %@ ms" = "Tap %@ · %@ ms";
 "Hold %@ · %@ ms" = "Hold %@ · %@ ms";
