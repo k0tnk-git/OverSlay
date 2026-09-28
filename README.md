@@ -28,6 +28,14 @@ Download the universal DMG from the latest release, open it on your Mac, and dra
 
 The app interface starts in English; choose Russian in **Settings → App Language** to apply it on the next launch. Compatibility with specific games, fullscreen setups, and keyboard workflows requires hands-on testing; a successful build or launch does not guarantee it.
 
+## Known compatibility limitations
+
+- **Exclusive fullscreen:** overlays may disappear or lose focus. Use borderless windowed mode when available.
+- **Synthetic input:** some games ignore software-generated keystrokes. OverSlay cannot guarantee input support in every game.
+- **Focus:** clicking an overlay may cause some games to lose focus and stop receiving input, even with non-activating controls.
+
+These are known game/platform compatibility limitations; please avoid duplicate bug reports for these cases.
+
 ## Build from source
 
 Requires macOS and Swift 5.9 or later. Run `bash scripts/ci.sh` from the repository root.
